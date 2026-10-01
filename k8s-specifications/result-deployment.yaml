@@ -1,10 +1,10 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  labels:
-    app: result
   name: result
   namespace: voting-app
+  labels:
+    app: result
 spec:
   replicas: 1
   selector:
@@ -16,8 +16,7 @@ spec:
         app: result
     spec:
       containers:
-      - image: dockersamples/examplevotingapp_result
-        name: result
-        ports:
-        - containerPort: 80
-          name: result
+        - name: result
+          image: harathi2026/voting-result:latest
+          ports:
+            - containerPort: 80
