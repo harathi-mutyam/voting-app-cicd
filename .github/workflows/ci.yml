@@ -83,7 +83,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 
- sonarqube:
+  sonarqube:
     name: SonarQube Code Analysis
     runs-on: self-hosted
 
