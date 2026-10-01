@@ -20,3 +20,4 @@ spec:
           image: harathi2026/voting-result:latest
           ports:
             - containerPort: 80
+
