@@ -79,23 +79,52 @@ jobs:
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
+  
   sonarqube:
     name: SonarQube Code Analysis
     runs-on: self-hosted
-  
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-  
+
       - name: Check Java
-        run: java -version
-  
+        run: |
+          java -version
+
       - name: Check SonarScanner
-        run: sonar-scanner --version
-  
+        run: |
+          sonar-scanner --version
+
+      - name: Check SonarQube configuration
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
+        run: |
+          if [ -z "$SONAR_TOKEN" ]; then
+            echo "ERROR: SONAR_TOKEN is empty or not available"
+            exit 1
+          fi
+
+          if [ -z "$SONAR_HOST_URL" ]; then
+            echo "ERROR: SONAR_HOST_URL is empty or not available"
+            exit 1
+          fi
+
+          echo "SONAR_TOKEN is available"
+          echo "SONAR_HOST_URL is: $SONAR_HOST_URL"
+
+      - name: Test SonarQube connection
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
+        run: |
+          curl -sS \
+            -u "$SONAR_TOKEN:" \
+            "$SONAR_HOST_URL/api/authentication/validate"
+
       - name: Run SonarQube Analysis
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -105,8 +134,11 @@ jobs:
             -Dsonar.projectKey=voting-app-cicd \
             -Dsonar.projectName=voting-app-cicd \
             -Dsonar.sources=. \
-            -Dsonar.host.url=$SONAR_HOST_URL \
-            -Dsonar.token=$SONAR_TOKEN
+            -Dsonar.host.url="$SONAR_HOST_URL" \
+            -Dsonar.token="$SONAR_TOKEN"
+
+
+  
 
   
 
