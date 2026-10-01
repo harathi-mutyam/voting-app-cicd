@@ -1,29 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  labels:
-    app: redis
-  name: redis
+  name: result
   namespace: voting-app
+  labels:
+    app: result
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: redis
+      app: result
   template:
     metadata:
       labels:
-        app: redis
+        app: result
     spec:
       containers:
-      - image: redis:alpine
-        name: redis
-        ports:
-        - containerPort: 6379
-          name: redis
-        volumeMounts:
-        - mountPath: /data
-          name: redis-data
-      volumes:
-      - name: redis-data
-        emptyDir: {}
+        - name: result
+          image: harathi2026/voting-result:latest
+          ports:
+            - containerPort: 80
