@@ -104,12 +104,12 @@ jobs:
           which sonar-scanner
           sonar-scanner --version
 
-      - name: Test SonarQube Authentication
+      - name: Check SonarQube Configuration
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
         run: |
-          echo "Testing SonarQube authentication..."
+          echo "Checking SonarQube configuration..."
 
           if [ -z "$SONAR_TOKEN" ]; then
             echo "ERROR: SONAR_TOKEN is EMPTY"
@@ -121,6 +121,16 @@ jobs:
             exit 1
           fi
 
+          echo "SONAR_TOKEN is available"
+          echo "SONAR_HOST_URL: $SONAR_HOST_URL"
+
+      - name: Test SonarQube Authentication
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
+        run: |
+          echo "Testing SonarQube authentication..."
+
           RESPONSE=$(curl -sS \
             -u "$SONAR_TOKEN:" \
             "$SONAR_HOST_URL/api/authentication/validate")
@@ -129,7 +139,7 @@ jobs:
           echo "$RESPONSE"
 
           if echo "$RESPONSE" | grep -q '"valid":true'; then
-            echo "SonarQube authentication successful"
+            echo "SUCCESS: SonarQube authentication successful"
           else
             echo "ERROR: SonarQube authentication failed"
             exit 1
