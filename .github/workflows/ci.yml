@@ -103,7 +103,7 @@ jobs:
           which sonar-scanner
           sonar-scanner --version
 
-      - name: Check SonarQube configuration
+      - name: Check SonarQube variables
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
@@ -111,40 +111,38 @@ jobs:
           echo "Checking SonarQube configuration..."
 
           if [ -z "$SONAR_TOKEN" ]; then
-            echo "ERROR: SONAR_TOKEN is empty"
+            echo "ERROR: SONAR_TOKEN is EMPTY"
             exit 1
           fi
 
           if [ -z "$SONAR_HOST_URL" ]; then
-            echo "ERROR: SONAR_HOST_URL is empty"
+            echo "ERROR: SONAR_HOST_URL is EMPTY"
             exit 1
           fi
 
           echo "SONAR_TOKEN is available"
-          echo "SONAR_HOST_URL is configured"
+          echo "SONAR_TOKEN length: ${#SONAR_TOKEN}"
           echo "SONAR_HOST_URL: $SONAR_HOST_URL"
 
-      - name: Test SonarQube Authentication
+      - name: Test SonarQube authentication
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
         run: |
-          echo "Testing connection to SonarQube..."
+          echo "Testing SonarQube authentication..."
 
-          HTTP_CODE=$(curl -sS \
-            -o authentication-response.json \
-            -w "%{http_code}" \
-            -u "$SONAR_TOKEN:" \
-            "$SONAR_HOST_URL/api/authentication/validate")
+          RESPONSE=$(curl -sS \
+            -u "${SONAR_TOKEN}:" \
+            "${SONAR_HOST_URL}/api/authentication/validate")
 
-          echo "HTTP status code: $HTTP_CODE"
-          echo "Authentication response:"
-          cat authentication-response.json
+          echo "SonarQube authentication response:"
+          echo "$RESPONSE"
 
-          if grep -q '"valid":true' authentication-response.json; then
+          if echo "$RESPONSE" | grep -q '"valid":true'; then
             echo "SonarQube authentication successful"
           else
             echo "ERROR: SonarQube authentication failed"
+            echo "The SONAR_TOKEN stored in GitHub is not valid."
             exit 1
           fi
 
@@ -159,8 +157,7 @@ jobs:
             -Dsonar.projectKey=voting-app-cicd \
             -Dsonar.projectName=voting-app-cicd \
             -Dsonar.sources=. \
-            -Dsonar.host.url="$SONAR_HOST_URL" \
-            -Dsonar.token="$SONAR_TOKEN"
+            -Dsonar.host.url="${SONAR_HOST_URL}" \
+            -Dsonar.token="${SONAR_TOKEN}"
 
           echo "SonarQube analysis completed successfully"
-
