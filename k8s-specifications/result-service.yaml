@@ -17,3 +17,4 @@ spec:
     #nodePort: 31001
   selector:
     app: result
+
