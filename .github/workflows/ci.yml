@@ -89,11 +89,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install Java
-        run: |
-          sudo apt update
-          sudo apt install -y openjdk-17-jre
-
+      
       - name: Check Java
         run: java -version
 
