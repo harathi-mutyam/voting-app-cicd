@@ -1,0 +1,65 @@
+name: Voting App CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+
+  vote-ci:
+    name: Vote - Python CI
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check Python
+        run: python3 --version
+
+      - name: Install vote dependencies
+        working-directory: vote
+        run: |
+          python3 -m pip install -r requirements.txt --break-system-packages
+
+      - name: Python syntax check
+        working-directory: vote
+        run: |
+          python3 -m compileall .
+
+  result-ci:
+    name: Result - Node.js CI
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check Node.js
+        run: node --version
+
+      - name: Check npm
+        run: npm --version
+
+      - name: Install dependencies
+        working-directory: result
+        run: npm ci
+
+  worker-ci:
+    name: Worker - Docker Build
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check Docker
+        run: docker --version
+
+      - name: Build worker image
+        run: |
+          docker build -t voting-worker:ci ./worker
