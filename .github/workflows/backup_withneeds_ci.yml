@@ -1,0 +1,203 @@
+name: Voting App CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+
+  vote-ci:
+    name: Vote - Python CI
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check Python
+        run: python3 --version
+
+      - name: Install vote dependencies
+        working-directory: vote
+        run: |
+          python3 -m pip install -r requirements.txt --break-system-packages
+
+      - name: Python syntax check
+        working-directory: vote
+        run: |
+          python3 -m compileall .
+
+
+  result-ci:
+    name: Result - Node.js CI
+    needs: vote-ci
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check Node.js
+        run: node --version
+
+      - name: Check npm
+        run: npm --version
+
+      - name: Install dependencies
+        working-directory: result
+        run: npm ci
+
+
+  worker-ci:
+    name: Worker - Docker Build
+    needs: result-ci
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check Docker
+        run: docker --version
+
+      - name: Build worker image
+        run: |
+          docker build -t voting-worker:ci ./worker
+
+
+  gitleaks:
+    name: Gitleaks Secret Scan
+    needs: worker-ci
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+
+  sonarqube:
+    name: SonarQube Code Analysis
+    needs: gitleaks
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check Java
+        run: |
+          java -version
+
+      - name: Check SonarScanner
+        run: |
+          which sonar-scanner
+          sonar-scanner --version
+
+      - name: Test SonarQube Authentication
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
+        run: |
+          echo "Testing SonarQube authentication..."
+
+          if [ -z "$SONAR_TOKEN" ]; then
+            echo "ERROR: SONAR_TOKEN is empty"
+            exit 1
+          fi
+
+          if [ -z "$SONAR_HOST_URL" ]; then
+            echo "ERROR: SONAR_HOST_URL is empty"
+            exit 1
+          fi
+
+          RESPONSE=$(curl -sS \
+            -u "$SONAR_TOKEN:" \
+            "$SONAR_HOST_URL/api/authentication/validate")
+
+          echo "Authentication response:"
+          echo "$RESPONSE"
+
+          if echo "$RESPONSE" | grep -q '"valid":true'; then
+            echo "SUCCESS: SonarQube authentication successful"
+          else
+            echo "ERROR: SonarQube authentication failed"
+            exit 1
+          fi
+
+      - name: Run SonarQube Analysis
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
+        run: |
+          echo "Starting SonarQube analysis..."
+
+          sonar-scanner \
+            -Dsonar.host.url="$SONAR_HOST_URL" \
+            -Dsonar.login="$SONAR_TOKEN"
+
+          echo "SonarQube analysis completed successfully"
+
+
+  docker-build-push:
+    name: Build and Push Docker Images
+    needs: sonarqube
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check Docker
+        run: docker --version
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build Vote image
+        run: |
+          docker build \
+            -t ${{ vars.DOCKERHUB_USERNAME }}/voting-vote:latest \
+            ./vote
+
+      - name: Build Result image
+        run: |
+          docker build \
+            -t ${{ vars.DOCKERHUB_USERNAME }}/voting-result:latest \
+            ./result
+
+      - name: Build Worker image
+        run: |
+          docker build \
+            -t ${{ vars.DOCKERHUB_USERNAME }}/voting-worker:latest \
+            ./worker
+
+      - name: Push Vote image
+        run: |
+          docker push \
+            ${{ vars.DOCKERHUB_USERNAME }}/voting-vote:latest
+
+      - name: Push Result image
+        run: |
+          docker push \
+            ${{ vars.DOCKERHUB_USERNAME }}/voting-result:latest
+
+      - name: Push Worker image
+        run: |
+          docker push \
+            ${{ vars.DOCKERHUB_USERNAME }}/voting-worker:latest
