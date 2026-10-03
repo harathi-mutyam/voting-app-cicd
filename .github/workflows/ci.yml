@@ -201,3 +201,4 @@ jobs:
         run: |
           docker push \
             ${{ vars.DOCKERHUB_USERNAME }}/voting-worker:latest
+            
