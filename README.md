@@ -1,12 +1,13 @@
 # Voting App — Final Presentation Runbook
-This is the cleaned-up version for your next project presentation/trial.
-The starting point is your existing GitHub repository:
 voting-app-cicd GitHub repository 
+
 The repository already contains the application source code, CI/CD workflow, Terraform configuration, Kubernetes manifests, and SonarQube configuration.
+
 Your Docker Hub repositories already exist:
 •	harathi2026/voting-vote
 •	harathi2026/voting-result
 •	harathi2026/voting-worker
+
 Therefore, do not manually build the three Docker images before starting the presentation. GitHub Actions will build them and push them to Docker Hub.
 
 ---
